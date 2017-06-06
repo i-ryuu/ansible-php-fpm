@@ -1,0 +1,89 @@
+---
+
+- name: add php apt repository
+  become: yes
+  apt_repository:
+    repo: ppa:ondrej/php
+    state: present
+    update_cache: yes
+
+- name: "install php{{ php_version }}-fpm"
+  become: yes
+  apt:
+    name: "php{{ php_version }}-{{ item }}"
+    state: present
+  with_items:
+    - fpm
+    - mysql
+    - mbstring
+    - curl
+    - xml
+    - gd
+
+- name: install php ssh extension with dependency
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "libssh2-1"
+    - "php-ssh2"
+
+- name: update php.ini file
+  become: yes
+  lineinfile:
+    dest: "/etc/php/{{ php_version }}/fpm/php.ini"
+    state: present
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - regexp: "^error_log = syslog"
+      line: "error_log = {{ php_error_log }}"
+    - regexp: "^;date.timezone"
+      line: "date.timezone = {{ php_timezone }}"
+    - regexp: "^;mbstring.language"
+      line: "mbstring.language = Japanese"
+    - regexp: "^memory_limit = "
+      line: "memory_limit = {{ php_memory_limit }}"
+    - regexp: "^post_max_size = "
+      line: "post_max_size = {{ php_post_max_size }}"
+    - regexp: "^upload_max_filesize = "
+      line: "upload_max_filesize = {{ php_upload_max_filesize }}"
+    - regexp: "^display_errors = "
+      line: "display_errors = {{ php_display_errors }}"
+    - regexp: "^display_startup_errors = "
+      line: "display_startup_errors = {{ php_display_startup_errors }}"
+    # opcache
+    - regexp: "^;opcache.enable="
+      line: "opcache.enable = 1"
+
+- name: update pool.d file
+  become: yes
+  lineinfile:
+    dest: "/etc/php/{{ php_version }}/fpm/pool.d/www.conf"
+    state: present
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - regexp: "^group = www-data"
+      line: "group = {{ phpFpm_group }}"
+    - regexp: "^user = www-data"
+      line:  "user = {{ phpFpm_user }}"
+    
+    - regexp: "^listen = "
+      line: "listen = {{ phpFpm_socket_path }}"
+
+    - regexp: "^listen.owner = "
+      line: "listen.owner = {{ phpFpm_user }}"
+    - regexp: "^listen.group = "
+      line: "listen.group = {{ phpFpm_group }}"
+    
+    - regexp: "^;listen.allowed_clients = 127.0.0.1"
+      line: "listen.allowed_clients = 127.0.0.1"
+  
+- name: Install Composer package manager
+  become: yes
+  apt:
+    name: composer
+    state: present
+  notify: restart php-fpm

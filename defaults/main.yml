@@ -1,0 +1,15 @@
+---
+
+php_version: 7.1
+php_timezone: Asia/Tokyo
+php_error_log: /var/log/php_errors.log
+php_post_max_size: 20M
+php_upload_max_filesize: 30M
+php_memory_limit: 256M
+php_display_errors: On
+php_display_startup_errors: On
+
+# Fast CGI
+phpFpm_user: www-fpm
+phpFpm_group: www-fpm
+phpFpm_socket_path: "/var/run/php/php{{ php_version }}-fpm.sock"
